@@ -145,6 +145,7 @@ func (re *requestExecutor) traverse() error {
 }
 
 func (re *requestExecutor) run() {
+	println("[executor] requestExecutor run")
 	err := re.traverse()
 	if err != nil {
 		if !isContextErr(err) {

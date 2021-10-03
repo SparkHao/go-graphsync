@@ -315,6 +315,7 @@ func (rm *RequestManager) PauseRequest(requestID graphsync.RequestID) error {
 }
 
 func (rm *RequestManager) sendSyncMessage(message requestManagerMessage, response chan error, done <-chan struct{}) error {
+	log.Infow("[sendSyncMessage] start")
 	select {
 	case <-rm.ctx.Done():
 		return errors.New("context cancelled")
@@ -416,10 +417,12 @@ func (nrm *newRequestMessage) setupRequest(requestID graphsync.RequestID, rm *Re
 			ResumeMessages:       resumeMessages,
 			PauseMessages:        pauseMessages,
 		})
+	log.Infow("[setupRequest]", "request id", requestID, "incoming", incoming)
 	return request, incoming, incomingError
 }
 
 func (nrm *newRequestMessage) handle(rm *RequestManager) {
+	log.Infow("[newRequestMessage] handle")
 	var ipr inProgressRequest
 	ipr.requestID = rm.nextRequestID
 	rm.nextRequestID++
@@ -479,6 +482,7 @@ func (crm *cancelRequestMessage) handle(rm *RequestManager) {
 }
 
 func (prm *processResponseMessage) handle(rm *RequestManager) {
+	log.Infow("[processResponseMessage] handle")
 	filteredResponses := rm.processExtensions(prm.responses, prm.p)
 	filteredResponses = rm.filterResponsesForPeer(filteredResponses, prm.p)
 	rm.updateLastResponses(filteredResponses)
@@ -578,6 +582,7 @@ func (rm *RequestManager) generateResponseErrorFromStatus(status graphsync.Respo
 }
 
 func (rm *RequestManager) processBlockHooks(p peer.ID, response graphsync.ResponseData, block graphsync.BlockData) error {
+	log.Infow("[processBlockHooks] start")
 	result := rm.blockHooks.ProcessBlockHooks(p, response, block)
 	if len(result.Extensions) > 0 {
 		updateRequest := gsmsg.UpdateRequest(response.RequestID(), result.Extensions...)
@@ -657,6 +662,7 @@ func (r reqSubscriber) OnClose(topic notifications.Topic) {
 const requestNetworkError = "request_network_error"
 
 func (rm *RequestManager) sendRequest(p peer.ID, request gsmsg.GraphSyncRequest) {
+	log.Infow("[sendRequest]", "request", request)
 	sub := notifications.NewTopicDataSubscriber(&reqSubscriber{p, request, rm.networkErrorListeners})
 	failNotifee := notifications.Notifee{Data: requestNetworkError, Subscriber: sub}
 	rm.peerHandler.AllocateAndBuildMessage(p, 0, func(builder *gsmsg.Builder) {
